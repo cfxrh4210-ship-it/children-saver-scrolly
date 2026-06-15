@@ -498,7 +498,9 @@ h1 span:first-child {
 }
 
 .case-profile-panel figcaption {
-  grid-column: 2;
+  grid-column: 1 / -1;
+  justify-self: center;
+  width: min(720px, 100%);
   padding: 0;
   color: rgba(255, 255, 255, 0.64);
   font-size: 0.82rem;
@@ -2113,7 +2115,7 @@ body[data-scene="trust"] .story-atmosphere {
   }
 
   .case-profile-panel figcaption {
-    grid-column: 1;
+    grid-column: 1 / -1;
   }
 
   .bubble-group {
