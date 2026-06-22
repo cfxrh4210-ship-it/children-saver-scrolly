@@ -358,21 +358,25 @@ function updateActiveStepFromViewport() {
   stepTicking = false;
   if (!steps.length) return;
 
-  const focusLine = window.innerHeight * 0.46;
+  const viewportHeight = window.innerHeight || 1;
+  const focusLine = viewportHeight * 0.46;
   const visibleSteps = steps
     .map((step) => ({ step, rect: step.getBoundingClientRect() }))
-    .filter(({ rect }) => rect.bottom > 0 && rect.top < window.innerHeight);
+    .map((item) => {
+      const visibleHeight = Math.min(item.rect.bottom, viewportHeight) - Math.max(item.rect.top, 0);
+      const center = item.rect.top + item.rect.height / 2;
+      const crossesFocus = item.rect.top <= focusLine && item.rect.bottom >= focusLine;
+      return {
+        ...item,
+        visibleHeight: Math.max(visibleHeight, 0),
+        score: (crossesFocus ? viewportHeight : 0) + Math.max(visibleHeight, 0) - Math.abs(center - focusLine) * 0.12,
+      };
+    })
+    .filter(({ visibleHeight }) => visibleHeight > 0);
 
   if (!visibleSteps.length) return;
 
-  const active =
-    visibleSteps.find(({ rect }) => rect.top <= focusLine && rect.bottom >= focusLine) ||
-    visibleSteps
-      .map((item) => ({
-        ...item,
-        distance: Math.abs(item.rect.top + item.rect.height / 2 - focusLine),
-      }))
-      .sort((a, b) => a.distance - b.distance)[0];
+  const active = visibleSteps.sort((a, b) => b.score - a.score)[0];
 
   if (active) setActiveStep(active.step);
 }
