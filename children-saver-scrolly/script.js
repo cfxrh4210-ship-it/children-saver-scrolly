@@ -352,24 +352,45 @@ function setActiveStep(step) {
   renderChart(step.dataset.chart);
 }
 
-const observer = new IntersectionObserver(
-  (entries) => {
-    const visible = entries
-      .filter((entry) => entry.isIntersecting)
-      .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+let stepTicking = false;
 
-    if (visible) {
-      setActiveStep(visible.target);
-    }
-  },
-  {
-    threshold: [0.35, 0.5, 0.7],
-    rootMargin: "-18% 0px -35% 0px",
-  }
-);
+function updateActiveStepFromViewport() {
+  stepTicking = false;
+  if (!steps.length) return;
 
-steps.forEach((step) => observer.observe(step));
+  const viewportHeight = window.innerHeight || 1;
+  const focusLine = viewportHeight * 0.46;
+  const visibleSteps = steps
+    .map((step) => ({ step, rect: step.getBoundingClientRect() }))
+    .map((item) => {
+      const visibleHeight = Math.min(item.rect.bottom, viewportHeight) - Math.max(item.rect.top, 0);
+      const center = item.rect.top + item.rect.height / 2;
+      const crossesFocus = item.rect.top <= focusLine && item.rect.bottom >= focusLine;
+      return {
+        ...item,
+        visibleHeight: Math.max(visibleHeight, 0),
+        score: (crossesFocus ? viewportHeight : 0) + Math.max(visibleHeight, 0) - Math.abs(center - focusLine) * 0.12,
+      };
+    })
+    .filter(({ visibleHeight }) => visibleHeight > 0);
+
+  if (!visibleSteps.length) return;
+
+  const active = visibleSteps.sort((a, b) => b.score - a.score)[0];
+
+  if (active) setActiveStep(active.step);
+}
+
+function requestStepUpdate() {
+  if (stepTicking) return;
+  stepTicking = true;
+  window.requestAnimationFrame(updateActiveStepFromViewport);
+}
+
 renderChart("relationship");
+updateActiveStepFromViewport();
+window.addEventListener("scroll", requestStepUpdate, { passive: true });
+window.addEventListener("resize", requestStepUpdate);
 
 const statObserver = new IntersectionObserver(
   (entries) => {
